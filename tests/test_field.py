@@ -39,7 +39,8 @@ class TestField(unittest.TestCase):
 
     def testField_strategise(self):
         f = Field(home=[(2, 0)], agents=[(2, 2), (6, 3)], payloads=[(1, 1), (5, 5)])
-        print f.strategise()
+        strategies = f.strategise()
+        print strategies
         pass
 
 if __name__ == "__main__":

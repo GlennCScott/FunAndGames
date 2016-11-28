@@ -25,27 +25,22 @@ class Field(object):
     def solve(self):
         # For each agent, compute the distance to each payload
 
-        distances = {}
-        for agent in self.agents:
-            for payload in self.payloads:
-                distance = agent.distance(payload)
-                distances.update(agent, distance)
-        # For each agent, choose the shortest distance
-        # iterate
+        strategies = self.strategise()
+        for strategy in strategies:
+            agent = strategy[0]
+            path = agent.plot_path(strategy[1])
+            print path
 
         pass
 
     def strategise(self):
-        # For each agent, compute the distance to each payload
-
         agent_strategies = []
+        exclude = None
         for agent in self.agents:
-            best_payload = agent.get_best_payload(self.payloads)
+            best_payload = agent.get_best_payload(self.payloads, exclude)
             agent_strategies.append((agent, best_payload))
 
-        print agent_strategies
-
-        pass
+        return agent_strategies
 
     def __repr__(self):
         result = ""

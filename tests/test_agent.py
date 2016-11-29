@@ -13,11 +13,11 @@ class TestAgent(unittest.TestCase):
 
     def test_agent(self):
         island_of_agents = IslandOfAgents(None)
-        agent = Agent(1, 1, island_of_agents)
+        agent = Agent(1, island_of_agents)
 
     def test_update_navigation(self):
         island_of_agents = IslandOfAgents(None)
-        agent = Agent(1, 1, island_of_agents)
+        agent = Agent(1, island_of_agents)
 
         agent._heading = 'right'
         agent._coordinates = (0, 0)
@@ -41,16 +41,33 @@ class TestAgent(unittest.TestCase):
         self.assertEquals(agent._coordinates, (-1, 1))
         pass
 
-    def test_scan_and_move__visible_payloads(self):
+    def test__move_towards(self):
         island_of_agents = IslandOfAgents(None)
-        agent = Agent(1, 1, island_of_agents)
-        agent.scan_and_move()
+        agent = Agent(1, island_of_agents)
 
-    def test_scan_and_move__has_payload(self):
-        island_of_agents = IslandOfAgents(None)
-        agent = Agent(1, 1, island_of_agents)
-        agent.has_payload = True
-        agent.scan_and_move()
+        m = agent._move_toward((2, 2))
+        print m
+        m = agent._move_toward((2, 1))
+        print m
+        m = agent._move_toward((2, 0))
+        print m
+        m = agent._move_toward((0, 2))
+        print m
+        m = agent._move_toward((0, 1))
+        print m
+
+        pass
+
+#     def test_scan_and_move__visible_payloads(self):
+#         island_of_agents = IslandOfAgents(None)
+#         agent = Agent(1, island_of_agents)
+#         agent.scan_and_move()
+
+#     def test_scan_and_move__has_payload(self):
+#         island_of_agents = IslandOfAgents(None)
+#         agent = Agent(1, island_of_agents)
+#         agent.has_payload = True
+#         agent.scan_and_move()
 
         pass
 

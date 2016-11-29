@@ -59,7 +59,7 @@ class IslandOfAgents(object):
 
         self.agents = []
         for agent_id in range(number_of_agents):
-            self.agents.append(Agent(agent_id, self.simulation_id, self))
+            self.agents.append(Agent(agent_id, self))
 
         self.running = True
         return result
@@ -77,14 +77,14 @@ class IslandOfAgents(object):
             result = {}
         return result
 
-    def agent_status(self, simulation_id, agent_identifier):
+    def agent_status(self, agent_identifier):
         """Get the status of an agent.
         """
 
         result = None
         if self.server:
             response = requests.get(self.server + '/api/simulations/%s/agents/%s/status'
-                                    % (simulation_id, agent_identifier))
+                                    % (self.simulation_id, agent_identifier))
             result = response.json()
             print "agent_status", result
         else:
@@ -97,27 +97,27 @@ class IslandOfAgents(object):
         agent_data = eval(result['agentData'])
         return agent_data
 
-    def agent_action(self, simulation_id, agent_id, action, mode):
+    def agent_action(self, agent_id, action, mode):
         assert action in ('moveForward', 'turnLeft', 'turnRight', 'pickUp', 'drop', 'idle')
 
         if self.server:
-            return requests.post(self.server + '/api/simulations/%s/agents/%s/action' % (simulation_id, agent_id),
+            return requests.post(self.server + '/api/simulations/%s/agents/%s/action' % (self.simulation_id, agent_id),
                                  json={'action': action, 'mode': mode},
                                  headers={'Content-Type': 'application/json'})
         else:
             return None
 
     # all the actions are recorded, now simulate them
-    def step(self, simulation_id):
+    def step(self):
         if self.server:
-            return requests.post(self.server + '/api/simulations/%s/step' % (simulation_id),
-                                 json={},  # nothing to send at the moment
-                                 headers={'Content-Type': 'application/json'})
+            return requests.put(self.server + '/api/simulations/%s/step' % (self.simulation_id,),
+                                json={},  # nothing to send at the moment
+                                headers={'Content-Type': 'application/json'})
         else:
             return None
 
     def step_sim(self):
-        json_res = self.step(self.simulation_id)
+        json_res = self.step()
         if self.debugging:
             print 'step: ',
             pprint(json_res)
@@ -144,7 +144,7 @@ class IslandOfAgents(object):
 
 
 if __name__ == "__main__":
-    island = IslandOfAgents("http://159.203.200.170:8080", simulation_id=2)
+    island = IslandOfAgents("http://159.203.200.170:8080")
     island.create_sim('HW1')
     island.start_sim()
     island.run(10)

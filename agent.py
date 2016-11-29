@@ -61,9 +61,9 @@ class Agent(object):
             self._update_horizon(max(home[0], home[1]))
 
         if 'Payloads' in self.last_scan:
-            self.payloads_visible = self.last_scan['Payloads']
+            self.visible_payloads = self.last_scan['Payloads']
         else:
-            self.payloads_visible = None
+            self.visible_payloads = None
 
         if 'Walls' in self.last_scan:
             self.walls = self.last_scan['Walls']
@@ -136,8 +136,8 @@ class Agent(object):
 
         return result
 
-    def _get_payload_strategy(self):
-        """A Payload is visible, get it.
+    def _fetch_payload_strategy(self):
+        """A Payload is visible, fetch it.
         """
 
         payload = self.get_best_payload_coordinate()
@@ -180,8 +180,8 @@ class Agent(object):
         elif self.has_home:
             self.strategy = self._find_payload_strategy
         else:
-            if self.payloads_visible:
-                self.strategy = self._get_payload_strategy
+            if self.visible_payloads:
+                self.strategy = self._fetch_payload_strategy
             else:
                 self.strategy = self._wander_strategy
 
@@ -191,7 +191,7 @@ class Agent(object):
         return result
 
     def _update_navigation(self, movement):
-        assert movement in ('moveForward', 'moveBackward', 'turnLeft', 'turnRight', 'drop', 'pickUp', 'idle')
+        assert movement in ('moveForward', 'moveBackward', 'turnLeft', 'turnRight')
 
         if self._heading == 'right':
             if movement == 'moveForward':
@@ -202,12 +202,6 @@ class Agent(object):
                 self._heading = 'up'
             elif movement == 'turnRight':
                 self._heading = 'down'
-            elif movement == 'drop':
-                pass
-            elif movement == 'pickUp':
-                pass
-            elif movement == 'idle':
-                pass
 
         elif self._heading == 'left':
             if movement == 'moveForward':
@@ -218,12 +212,6 @@ class Agent(object):
                 self._heading = 'down'
             elif movement == 'turnRight':
                 self._heading = 'up'
-            elif movement == 'drop':
-                pass
-            elif movement == 'pickUp':
-                pass
-            elif movement == 'idle':
-                pass
 
         elif self._heading == 'up':
             if movement == 'moveForward':
@@ -234,12 +222,6 @@ class Agent(object):
                 self._heading = 'left'
             elif movement == 'turnRight':
                 self._heading = 'right'
-            elif movement == 'drop':
-                pass
-            elif movement == 'pickUp':
-                pass
-            elif movement == 'idle':
-                pass
 
         elif self._heading == 'down':
             if movement == 'moveForward':
@@ -250,23 +232,17 @@ class Agent(object):
                 self._heading = 'right'
             elif movement == 'turnRight':
                 self._heading = 'left'
-            elif movement == 'drop':
-                pass
-            elif movement == 'pickUp':
-                pass
-            elif movement == 'idle':
-                pass
 
         return
 
     def get_best_payload_coordinate(self):
-        """Compute the distances from this Agent to the given Payloads.
+        """Get the best (nearest) Payload to this Agent.
 
-        Return the best Payload coordinates.
+        Return the relative coordinates of the best Payload.
         """
 
         result = None
-        for payload in self.payloads_visible:
+        for payload in self.visible_payloads:
                 distance = abs(payload[0]) + abs(payload[1])
                 if distance <= result[1]:
                     result = payload
@@ -274,4 +250,4 @@ class Agent(object):
         return result
 
     def __repr__(self):
-        return "Agent@(%d, %d) pointing %d" % (self.x, self.y, self.orientation)
+        return "Agent pointing %s" % (self._heading)

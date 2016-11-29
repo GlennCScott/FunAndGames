@@ -22,20 +22,23 @@ class IslandOfAgents(object):
     def create_sim(self, environment_name):
         assert environment_name in ("Test1", "Test2")
 
-        response = None
+        result = None
         if self.server:
             response = requests.post(self.server + "/simulations/create",
                                      json={'env_name': environment_name},
                                      headers={'Content-Type': 'application/json'})
-        else:
-            response = {'msg': 'Simulation "%s" created with environment "%s"!' % ("foo", environment_name),
-                        'status': 200,
-                        'simulationId': 1,
-                        'simulationData': {'id': 1, 'time': 0, 'NumAgents': 3, 'Statistics': 0, 'SimPoints': 0}
-                        }
 
-        self.simulation_id = response['simulationId']
-        data = response['simulationData']
+            result = response.json()
+            print "create", result
+        else:
+            result = {'msg': 'Simulation "%s" created with environment "%s"!' % ("foo", environment_name),
+                      'status': 200,
+                      'simulationId': 1,
+                      'simulationData': {'id': 1, 'time': 0, 'NumAgents': 3, 'Statistics': 0, 'SimPoints': 0}
+                      }
+
+        self.simulation_id = result['simulationId']
+        data = result['simulationData']
         numAgents = data['NumAgents']
 
         self.agents = []
@@ -47,7 +50,9 @@ class IslandOfAgents(object):
     def start_sim(self):
         result = None
         if self.server:
-            result = requests.put(self.server + '/simulations/%s/start' % self.simulation_id)
+            response = requests.put(self.server + '/simulations/%s/start' % self.simulation_id)
+            result = response.json()
+            print "start", result
         else:
             result = {'msg': 'Simulation %d restarted!' % (self.simulation_id),
                       'status': 200,
@@ -65,7 +70,9 @@ class IslandOfAgents(object):
 
         result = None
         if self.server:
-            result = requests.get(self.server + '/simulations/%s/status' % (simulation_id))
+            response = requests.get(self.server + '/simulations/%s/status' % (simulation_id))
+            result = response.json()
+            print "status", result
         else:
             result = {}
         return result
@@ -76,7 +83,10 @@ class IslandOfAgents(object):
 
         result = None
         if self.server:
-            result = requests.get(self.server + '/simulations/%s/agents/%s/status' % (simulation_id, agent_identifier))
+            response = requests.get(self.server + '/simulations/%s/agents/%s/status'
+                                    % (simulation_id, agent_identifier))
+            result = response.json()
+            print "agent_status", result
         else:
             result = {'msg': 'Done',
                       'status': 200,

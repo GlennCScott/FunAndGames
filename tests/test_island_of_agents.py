@@ -13,5 +13,11 @@ class Test(unittest.TestCase):
         island = IslandOfAgents(None)
         island.create_sim("Test1")
 
+    def test_runner(self):
+        sim = IslandOfAgents(None)
+        sim.create_sim('Test2')
+        sim.start_sim()
+        sim.run()
+
 if __name__ == "__main__":
     unittest.main()

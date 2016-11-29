@@ -21,7 +21,15 @@ class Agent(object):
         self.island_of_agents = island_of_agents
         self.identity = agent_id
         self.simulation_id = simulation_id
-        self.orientation = 0
+
+        self.has_home = False
+        self.has_payload = False
+
+        self._heading = None
+        self._home_locations = []
+        self._coordinates = None
+        self._horizon = 1
+        self._strategy = self._find_something_strategy
         return
 
     def get_status(self):
@@ -29,32 +37,169 @@ class Agent(object):
 
     # parse what the agent sees into structures for use later
     def scan(self):
-        jsonStatus = self.island_of_agents.agent_status(self.simulation_id, self.identity).json()
+        jsonStatus = self.island_of_agents.agent_status(self.simulation_id, self.identity)
 
         if self.island_of_agents.debugging:
             print 'agentStatus: ', self.identity,
             pprint.pprint(jsonStatus)
 
-        data = eval(jsonStatus['agentData'])
-        status = data['Status']
+        agent_data = eval(str(jsonStatus['agentData']))
+        status = agent_data['Status']
         self.lastStatus = status['LastStatus']
         self.lastAction = status['LastAction']
         self.mode = status['Mode']
-        self.lastScan = data['Scan']
-        if data['Scan'].haskey(''):
-            pass
+        self.last_scan = agent_data['Scan']
+
+        if 'Home' in self.last_scan:
+            home = self.last_scan['Home']
+            self._heading = 'right'
+            self.has_home = True
+            self.home_locations = home
+            self._coordinates = (-home[0], -home[1])
+            self._update_horizon(max(home[0], home[1]))
 
         return
 
-    # this is where the action happens.  Each agent looks around it by getting status, and based on that selects an action to do.
-    def scan_and_move(self):
-        self.scan()
-        # >>>>>>your logic goes here!<<<<<<<
-        # this simple example just blindly moves forward until it hits something. then it turns left
+    def _update_horizon(self, distance):
+        """If something in the scan is farther way than what is currently the known horizon,
+        update the horizon.
+        """
+
+        if distance > self._horizon:
+            self._horizon = distance
+        return
+
+    def _nascar_strategy(self):
+        result = None
+
         if self.lastStatus == 'Fail':
-            self.rc.agentAction(self.sid, self.aid, 'turnLeft', 1)
-            return
-        self.rc.agentAction(self.sid, self.aid, 'moveForward', 1)
+            result = 'turnLeft'
+        else:
+            result = 'moveForward'
+
+        return result
+
+    def _find_something_strategy(self):
+        result = 'moveForward'
+
+        if self.lastStatus == 'Fail':
+            result = 'turnLeft'
+
+        return result
+
+    def _find_home_strategy(self):
+        result = 'moveForward'
+
+        if self.lastStatus == 'Fail':
+            result = 'turnLeft'
+
+        return result
+        return
+
+    def _find_payload_strategy(self):
+        result = 'moveForward'
+
+        if self.lastStatus == 'Fail':
+            result = 'turnLeft'
+
+        return result
+        return
+
+    def _deposit_strategy(self):
+        """move toward Home to make a deposit
+        """
+
+        return
+
+    def scan_and_move(self):
+        """Scan the environment and compute an action to take.
+        """
+
+        self.scan()
+
+        if self.has_payload and self.has_home:
+            self.strategy = self._deposit_strategy
+        elif self.has_payload:
+            self.strategy = self._find_home_strategy
+        elif self.has_home:
+            self.strategy = self._find_payload_strategy
+        else:
+            self.strategy = self._find_something_strategy
+
+        movement = self.strategy()
+
+        self._update_coordinates(movement)
+        result = self.island_of_agents.agent_action(self.simulation_id, self.identity, movement, 1)
+        return result
+
+    def _update_coordinates(self, movement):
+        assert movement in ('moveForward', 'moveBackward', 'turnLeft', 'turnRight', 'drop', 'pickUp', 'idle')
+
+        if self._heading == 'right':
+            if movement == 'moveForward':
+                self._coordinates = (self._coordinates[0] + 1, self._coordinates[1] + 0)
+            elif movement == 'moveBackward':
+                self._coordinates = (self._coordinates[0] - 1, self._coordinates[1] + 0)
+            elif movement == 'turnLeft':
+                self._heading = 'up'
+            elif movement == 'turnRight':
+                self._heading = 'down'
+            elif movement == 'drop':
+                pass
+            elif movement == 'pickUp':
+                pass
+            elif movement == 'idle':
+                pass
+
+        elif self._heading == 'left':
+            if movement == 'moveForward':
+                self._coordinates = (self._coordinates[0] - 1,  self._coordinates[1] + 0)
+            elif movement == 'moveBackward':
+                self._coordinates = (self._coordinates[0] + 1, self._coordinates[1] + 0)
+            elif movement == 'turnLeft':
+                self._heading = 'down'
+            elif movement == 'turnRight':
+                self._heading = 'up'
+            elif movement == 'drop':
+                pass
+            elif movement == 'pickUp':
+                pass
+            elif movement == 'idle':
+                pass
+
+        elif self._heading == 'up':
+            if movement == 'moveForward':
+                self._coordinates = (self._coordinates[0] + 0, self._coordinates[1] + 1)
+            elif movement == 'moveBackward':
+                self._coordinates = (self._coordinates[0] + 0, self._coordinates[1] - 1)
+            elif movement == 'turnLeft':
+                self._heading = 'left'
+            elif movement == 'turnRight':
+                self._heading = 'right'
+            elif movement == 'drop':
+                pass
+            elif movement == 'pickUp':
+                pass
+            elif movement == 'idle':
+                pass
+
+        elif self._heading == 'down':
+            if movement == 'moveForward':
+                self._coordinates = (self._coordinates[0] + 0,  self._coordinates[1] - 1)
+            elif movement == 'moveBackward':
+                self._coordinates = (self._coordinates[0] + 0, self._coordinates[1] + 1)
+            elif movement == 'turnLeft':
+                self._heading = 'right'
+            elif movement == 'turnRight':
+                self._heading = 'left'
+            elif movement == 'drop':
+                pass
+            elif movement == 'pickUp':
+                pass
+            elif movement == 'idle':
+                pass
+
+        return
 
     def get_best_payload(self, payloads, excluded_payloads=None):
         """Compute the distances from this Agent to the given Payloads.

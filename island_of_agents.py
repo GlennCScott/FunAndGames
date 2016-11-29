@@ -15,18 +15,19 @@ class IslandOfAgents(object):
         self.server = server
         self.simulation_id = None
         self.debugging = debugging
+        self.running = False
         return
 
-    def create_sim(self, name):
-        assert name in ("Test1", "Test2")
+    def create_sim(self, environment_name):
+        assert environment_name in ("Test1", "Test2")
 
         response = None
         if self.server:
             response = requests.post(self.server + "/simulations/create",
-                                     json={'env_name': name},
+                                     json={'env_name': environment_name},
                                      headers={'Content-Type': 'application/json'})
         else:
-            response = {'msg': 'Simulation "%s" created with environment "%s"!' % ("foo", name),
+            response = {'msg': 'Simulation "%s" created with environment "%s"!' % ("foo", environment_name),
                         'status': 200,
                         'simulationId': 1,
                         'simulationData': {'id': 1, 'time': 0, 'NumAgents': 3, 'Statistics': 0, 'SimPoints': 0}
@@ -42,18 +43,19 @@ class IslandOfAgents(object):
 
         return
 
-    def start_sim(self, simulation_id):
+    def start_sim(self):
         result = None
         if self.server:
-            result = requests.put(self.server + '/simulations/%s/start' % simulation_id)
+            result = requests.put(self.server + '/simulations/%s/start' % self.simulation_id)
         else:
-            result = {'msg': 'Simulation <sid> restarted!' % (self.simulation_id),
+            result = {'msg': 'Simulation %d restarted!' % (self.simulation_id),
                       'status': 200,
                       'simulationData': {'id': self.simulation_id,
                                          'time': "now",
                                          'NumAgents': len(self.agents),
                                          'Statistics': "something",
                                          'SimPoints': "<status>"}}
+        self.running = True
         return result
 
     def sim_status(self, simulation_id):
@@ -83,8 +85,8 @@ class IslandOfAgents(object):
                                 "LastStatus": "<lastStatus>",
                                 "Mode": "<modeInt>"},
                           "Scan": {
-                              "Walls": "<WallScan>",
-                              "Home": "<HomeScan>",
+                              "Walls": ('R', 4),
+                              "Home": (1, 2),
                               "Payloads": "<PayloadScan>",
                               "Agents": "<AgentScan>"}
                        }}
@@ -93,15 +95,21 @@ class IslandOfAgents(object):
     def agent_action(self, simulation_id, agent_id, action, mode):
         assert action in ('moveForward', 'turnLeft', 'turnRight', 'pickUp', 'drop', 'idle')
 
-        return requests.post(self.server_url + '/simulations/%s/agents/%s/action' % (simulation_id, agent_id),
-                             json={'action': action, 'mode': mode},
-                             headers={'Content-Type': 'application/json'})
+        if self.server:
+            return requests.post(self.server + '/simulations/%s/agents/%s/action' % (simulation_id, agent_id),
+                                 json={'action': action, 'mode': mode},
+                                 headers={'Content-Type': 'application/json'})
+        else:
+            return None
 
     # all the actions are recorded, now simulate them
     def step(self, simulation_id):
-        return requests.post(self.server_url + '/simulations/%s/step' % (simulation_id),
-                             json={}, # nothing to send at the moment
-                             headers={'Content-Type': 'application/json'})
+        if self.server:
+            return requests.post(self.server + '/simulations/%s/step' % (simulation_id),
+                                 json={},  # nothing to send at the moment
+                                 headers={'Content-Type': 'application/json'})
+        else:
+            return None
 
     def step_sim(self):
         json_res = self.step(self.simulation_id)
@@ -111,14 +119,14 @@ class IslandOfAgents(object):
         return
 
     def get_status(self):
-        json_res = self.sim_status(self.simulation_id).json()
+        json_res = self.sim_status(self.simulation_id)
         if self.debugging:
             print 'simStatus: ',
             pprint.pprint(json_res)
         return
 
     def run(self):
-        while self.simulating:
+        while self.running:
             for agent in self.agents:
                 agent.scan_and_move()
 
@@ -130,6 +138,6 @@ class IslandOfAgents(object):
 if __name__ == "__main__":
     # tart Sim
     sim = IslandOfAgents()
-    sim.init_sim('Test2')
+    sim.create_sim('Test2')
     sim.start_sim()
     sim.run()

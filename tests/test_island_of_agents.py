@@ -17,7 +17,7 @@ class Test(unittest.TestCase):
         sim = IslandOfAgents(None)
         sim.create_sim('Test2')
         sim.start_sim()
-        sim.run()
+        sim.run(10)
 
 if __name__ == "__main__":
     unittest.main()

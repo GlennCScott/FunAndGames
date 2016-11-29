@@ -11,10 +11,11 @@ from agent import Agent
 class IslandOfAgents(object):
 
     def __init__(self, server, debugging=False):
-        self.agents = []
-        self.server = server
-        self.simulation_id = None
         self.debugging = debugging
+        self.server = server
+
+        self.agents = []
+        self.simulation_id = None
         self.running = False
         return
 
@@ -87,7 +88,7 @@ class IslandOfAgents(object):
                           "Scan": {
                               "Walls": ('R', 4),
                               "Home": (1, 2),
-                              "Payloads": "<PayloadScan>",
+                              "Payloads": [(1, 2), (3, 4)],
                               "Agents": "<AgentScan>"}
                        }}
         return result
@@ -125,8 +126,11 @@ class IslandOfAgents(object):
             pprint.pprint(json_res)
         return
 
-    def run(self):
-        while self.running:
+    def run(self, iterations):
+        """Run the simulation for N iterations
+        """
+
+        for iteration in range(0, iterations):
             for agent in self.agents:
                 agent.scan_and_move()
 
@@ -136,8 +140,7 @@ class IslandOfAgents(object):
 
 
 if __name__ == "__main__":
-    # tart Sim
-    sim = IslandOfAgents()
+    sim = IslandOfAgents(None)
     sim.create_sim('Test2')
     sim.start_sim()
-    sim.run()
+    sim.run(10)

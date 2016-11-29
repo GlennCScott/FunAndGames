@@ -26,10 +26,9 @@ class Agent(object):
         self.has_payload = False
 
         self._heading = None
-        self._home_locations = []
         self._coordinates = None
         self._horizon = 1
-        self._strategy = self._find_something_strategy
+        self._strategy = self._wander_strategy
         return
 
     def get_status(self):
@@ -46,7 +45,6 @@ class Agent(object):
         agent_data = jsonStatus['agentData']
         status = agent_data['Status']
         self.lastStatus = status['LastStatus']
-
         self.lastAction = status['LastAction']
 
         if self.lastStatus == 'Success':
@@ -59,9 +57,23 @@ class Agent(object):
             home = self.last_scan['Home']
             self._heading = 'right'
             self.has_home = True
-            self.home_locations = home
             self._coordinates = (-home[0], -home[1])
             self._update_horizon(max(home[0], home[1]))
+
+        if 'Payloads' in self.last_scan:
+            self.payloads_visible = self.last_scan['Payloads']
+        else:
+            self.payloads_visible = None
+
+        if 'Walls' in self.last_scan:
+            self.walls = self.last_scan['Walls']
+        else:
+            self.walls = None
+
+        if 'Agents' in self.last_scan:
+            self.agents = self.last_scan['Agents']
+        else:
+            self.agents = None
 
         return
 
@@ -84,7 +96,9 @@ class Agent(object):
 
         return result
 
-    def _find_something_strategy(self):
+    def _wander_strategy(self):
+        """Wander around.
+        """
         result = 'moveForward'
 
         if self.lastStatus == 'Fail':
@@ -93,6 +107,8 @@ class Agent(object):
         return result
 
     def _find_home_strategy(self):
+        """Find a Home.
+        """
         result = 'moveForward'
 
         if self.lastStatus == 'Fail':
@@ -102,6 +118,9 @@ class Agent(object):
         return
 
     def _find_payload_strategy(self):
+        """Find a payload.
+        """
+
         result = 'moveForward'
 
         if self.lastStatus == 'Fail':
@@ -109,8 +128,40 @@ class Agent(object):
 
         return result
 
+    def _pickup_payload_strategy(self):
+        """Pick up an adjacent payload
+        """
+
+        result = None
+
+        return result
+
+    def _get_payload_strategy(self):
+        """A Payload is visible, get it.
+        """
+
+        payload = self.get_best_payload_coordinate()
+
+        result = None
+
+        if abs(payload[0] + payload[1]) == 1:
+            # We are right next to it. so pick it up
+            result = self._pickup_payload_strategy()
+        else:
+            if payload[0] > 0:
+                result = 'moveForward'
+            elif payload[0] < 0:
+                result = 'moveBackward'
+            elif payload[1] > 0:
+                result = 'turnLeft'
+            elif payload[1] < 0:
+                result = 'turnRight'
+
+        assert result is not None
+        return result
+
     def _deposit_strategy(self):
-        """move toward Home to make a deposit
+        """Move toward Home to make a deposit
         """
 
         return
@@ -120,6 +171,7 @@ class Agent(object):
         """
 
         self.scan()
+        # Evaluate the environment and choose an action.
 
         if self.has_payload and self.has_home:
             self.strategy = self._deposit_strategy
@@ -128,11 +180,14 @@ class Agent(object):
         elif self.has_home:
             self.strategy = self._find_payload_strategy
         else:
-            self.strategy = self._find_something_strategy
+            if self.payloads_visible:
+                self.strategy = self._get_payload_strategy
+            else:
+                self.strategy = self._wander_strategy
 
-        self.last_movement = self.strategy()
+        movement = self.strategy()
 
-        result = self.island_of_agents.agent_action(self.simulation_id, self.identity, self.last_movement, 1)
+        result = self.island_of_agents.agent_action(self.simulation_id, self.identity, movement, 1)
         return result
 
     def _update_navigation(self, movement):
@@ -204,34 +259,19 @@ class Agent(object):
 
         return
 
-    def get_best_payload(self, payloads, excluded_payloads=None):
+    def get_best_payload_coordinate(self):
         """Compute the distances from this Agent to the given Payloads.
 
-        Return the best Payload and distance to it.
+        Return the best Payload coordinates.
         """
-        result = (0, 100000000)
-        for payload in payloads:
-            if payload not in excluded_payloads:
-                distance = abs(self.x - payload.x) + abs(self.y - payload.y)
+
+        result = None
+        for payload in self.payloads_visible:
+                distance = abs(payload[0]) + abs(payload[1])
                 if distance <= result[1]:
-                    result = (payload, distance)
+                    result = payload
 
         return result
-
-    def plot_path(self, x, y, direction='righterly'):
-        """Return a list of directions necessary to reach the x,y goal.
-        """
-        result = []
-        result.append(self.steer(x, y))
-
-        x_delta = x - self.x
-        y_delta = y = self.y
-
-
-        return result
-
-    def is_at(self, x, y):
-        return self.x == x and self.y == y
 
     def __repr__(self):
         return "Agent@(%d, %d) pointing %d" % (self.x, self.y, self.orientation)

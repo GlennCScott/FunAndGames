@@ -43,10 +43,15 @@ class Agent(object):
             print 'agentStatus: ', self.identity,
             pprint.pprint(jsonStatus)
 
-        agent_data = eval(str(jsonStatus['agentData']))
+        agent_data = jsonStatus['agentData']
         status = agent_data['Status']
         self.lastStatus = status['LastStatus']
+
         self.lastAction = status['LastAction']
+
+        if self.lastStatus == 'Success':
+            self._update_navigation(self.lastAction)
+
         self.mode = status['Mode']
         self.last_scan = agent_data['Scan']
 
@@ -103,7 +108,6 @@ class Agent(object):
             result = 'turnLeft'
 
         return result
-        return
 
     def _deposit_strategy(self):
         """move toward Home to make a deposit
@@ -126,13 +130,12 @@ class Agent(object):
         else:
             self.strategy = self._find_something_strategy
 
-        movement = self.strategy()
+        self.last_movement = self.strategy()
 
-        self._update_coordinates(movement)
-        result = self.island_of_agents.agent_action(self.simulation_id, self.identity, movement, 1)
+        result = self.island_of_agents.agent_action(self.simulation_id, self.identity, self.last_movement, 1)
         return result
 
-    def _update_coordinates(self, movement):
+    def _update_navigation(self, movement):
         assert movement in ('moveForward', 'moveBackward', 'turnLeft', 'turnRight', 'drop', 'pickUp', 'idle')
 
         if self._heading == 'right':

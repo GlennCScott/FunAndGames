@@ -11,11 +11,17 @@ class Test(unittest.TestCase):
 
     def test_create_sim(self):
         island = IslandOfAgents(None)
-        island.create_sim("Test1")
+        island.create_sim("HW1")
 
     def test_runner(self):
         sim = IslandOfAgents(None)
-        sim.create_sim('Test2')
+        sim.create_sim('HW1')
+        sim.start_sim()
+        sim.run(10)
+
+    def test_runner_server(self):
+        sim = IslandOfAgents("http://159.203.200.170:8080")
+        sim.create_sim('HW1')
         sim.start_sim()
         sim.run(10)
 

@@ -39,6 +39,20 @@ class TestAgent(unittest.TestCase):
         self.assertEquals(agent._heading, 'left')
         agent._update_navigation('moveForward')
         self.assertEquals(agent._coordinates, (-1, 1))
+        pass
+
+    def test_scan_and_move__visible_payloads(self):
+        island_of_agents = IslandOfAgents(None)
+        agent = Agent(1, 1, island_of_agents)
+        agent.scan_and_move()
+
+    def test_scan_and_move__has_payload(self):
+        island_of_agents = IslandOfAgents(None)
+        agent = Agent(1, 1, island_of_agents)
+        agent.has_payload = True
+        agent.scan_and_move()
+
+        pass
 
 if __name__ == "__main__":
     unittest.main()

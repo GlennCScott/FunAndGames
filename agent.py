@@ -6,61 +6,85 @@ Created on Nov 27, 2016
 
 
 class Agent(object):
-    def __init__(self, agent_id, island_of_agents):
+    def __init__(self, agent_identity, island_of_agents):
         self.island_of_agents = island_of_agents
-        self.identity = agent_id
+        self.identity = agent_identity
 
         self.has_home = False
         self.has_payload = False
 
-        self._heading = None
-        self._coordinates = None
+        self.experimental_home = None
+
         self._horizon = 1
         self._strategy = self._wander_strategy
         return
 
-    def get_status(self):
-        return self.island_of_agents.get_agent_status(self.identity)
+    def _update_home_information(self, homes):
+        """Given a list of Homes, pick the best one and remember where it is.
+
+        Currently the first one is considered the best one.
+        """
+
+        if homes is not None and len(homes) > 0:
+            self._home = homes[0]
+            self.has_home = True
+            self._update_horizon(max(abs(self._home[0]), abs(self._home[1])))
+            if self.experimental_home is None:
+                self.experimental_home = self._home
+            else:
+                assert self.experimental_home in self.last_scan['Home']
+        return
+
+    def _update_payload_information(self, payloads):
+        if payloads is not None and len(payloads) > 0:
+            self.visible_payloads = payloads
+        else:
+            self.visible_payloads = None
+        return
+
+    def _update_wall_information(self, walls):
+        if walls is not None and len(walls) > 0:
+            self.walls = walls
+        else:
+            self.walls = None
+        return
+
+    def _update_agents_information(self, agents):
+        if agents is not None and len(agents) > 0:
+            self.agents = agents
+        else:
+            self.agents = None
+        return
 
     # parse what the agent sees into structures for use later
     def scan(self):
         agent_data = self.island_of_agents.agent_status(self.identity)
 
         status = agent_data['Status']
-        self.lastStatus = status['LastStatus']
-        self.lastAction = status['LastAction']
+        self.last_status = status['LastStatus']
+        self.last_action = status['LastAction']
 
-        if self.lastStatus == 'Success':
-            self._update_navigation(self.lastAction)
-            if self.lastAction == 'Action.pickUp':
+        if self.last_status == 'Success':
+            self._update_navigation(self.last_action)
+            if self.last_action == 'Action.pickUp':
                 self.has_payload = True
-            if self.lastAction == 'Action.drop':
+            if self.last_action == 'Action.drop':
                 self.has_payload = False
 
         self.mode = status['Mode']
         self.last_scan = agent_data['Scan']
 
         if 'Home' in self.last_scan:
-            self._home = self.last_scan['Home'][0]
-            self._heading = 'right'
-            self.has_home = True
+            self._update_home_information(self.last_scan['Home'])
 
-            self._update_horizon(max(abs(self._home[0]), abs(self._home[1])))
-
-        if 'Payloads' in self.last_scan and len(self.last_scan['Payloads']) > 0:
-            self.visible_payloads = self.last_scan['Payloads']
-        else:
-            self.visible_payloads = None
+        if 'Payloads' in self.last_scan:
+            self._update_payload_information(self.last_scan['Payloads'])
 
         if 'Walls' in self.last_scan and len(self.last_scan['Walls']) > 0:
-            self.walls = self.last_scan['Walls']
-        else:
-            self.walls = None
+            self._update_wall_information(self.last_scan['Walls'])
 
         if 'Agents' in self.last_scan and len(self.last_scan['Agents']) > 0:
-            self.agents = self.last_scan['Agents']
-        else:
-            self.agents = None
+            self._update_agent_information(self.last_scan['Agents'])
 
         return
 
@@ -73,7 +97,7 @@ class Agent(object):
             self._horizon = distance
         return
 
-    def _move_toward(self, coordinates):
+    def move_toward(self, coordinates):
         # coordinates[0] is the left or rightness
         # coordinates[1] is the forward or backward direction
         result = None
@@ -102,7 +126,7 @@ class Agent(object):
 
         result = 'moveForward'
 
-        if self.lastStatus == 'Fail':
+        if self.last_status == 'Fail':
             result = 'turnLeft'
 
         return result
@@ -143,7 +167,7 @@ class Agent(object):
 
         best_payload = self.get_best_payload_coordinate()
 
-        result = self._move_toward(best_payload)
+        result = self.move_toward(best_payload)
 
         if result is None:
             # We are right next to it. so pick it up
@@ -156,19 +180,18 @@ class Agent(object):
         """Move toward Home to make a deposit
         """
 
-        result = self._move_toward(self._home)
+        result = self.move_toward(self._home)
         if result is None:
             result = "drop"
 
         assert result is not None
         return result
 
-    def scan_and_move(self):
+    def scan_and_act(self):
         """Scan the environment and compute an action to take.
         """
 
         self.scan()
-        # Evaluate the environment and choose an action.
 
         if self.has_payload and self.has_home:
             self.strategy = self._move_home_strategy
@@ -192,50 +215,22 @@ class Agent(object):
     def _update_navigation(self, movement):
         """If we've ever seen a Home, keep track of where it is, even if it moves beyond the scan horizon.
         """
+        if self.experimental_home is not None:
+            if movement == 'Action.moveForward':
+                self.experimental_home = (self.experimental_home[0], self.experimental_home[1] - 1)
+            elif movement == 'Action.moveBackward':
+                self.experimental_home = (self.experimental_home[0], self.experimental_home[1] + 1)
+            elif movement == 'Action.turnLeft':  # (0, -3) -> (-3, 0)
+                self.experimental_home = (self.experimental_home[1], -self.experimental_home[0])
+            elif movement == 'Action.turnRight':  # (0, -3) -> (3, 0)
+                self.experimental_home = (-self.experimental_home[1], self.experimental_home[0])
 
-        if self._heading == 'right':
-            if movement == 'moveForward':
-                self._coordinates = (self._coordinates[0] + 1, self._coordinates[1] + 0)
-            elif movement == 'moveBackward':
-                self._coordinates = (self._coordinates[0] - 1, self._coordinates[1] + 0)
-            elif movement == 'turnLeft':
-                self._heading = 'up'
-            elif movement == 'turnRight':
-                self._heading = 'down'
-
-        elif self._heading == 'left':
-            if movement == 'moveForward':
-                self._coordinates = (self._coordinates[0] - 1,  self._coordinates[1] + 0)
-            elif movement == 'moveBackward':
-                self._coordinates = (self._coordinates[0] + 1, self._coordinates[1] + 0)
-            elif movement == 'turnLeft':
-                self._heading = 'down'
-            elif movement == 'turnRight':
-                self._heading = 'up'
-
-        elif self._heading == 'up':
-            if movement == 'moveForward':
-                self._coordinates = (self._coordinates[0] + 0, self._coordinates[1] + 1)
-            elif movement == 'moveBackward':
-                self._coordinates = (self._coordinates[0] + 0, self._coordinates[1] - 1)
-            elif movement == 'turnLeft':
-                self._heading = 'left'
-            elif movement == 'turnRight':
-                self._heading = 'right'
-
-        elif self._heading == 'down':
-            if movement == 'moveForward':
-                self._coordinates = (self._coordinates[0] + 0,  self._coordinates[1] - 1)
-            elif movement == 'moveBackward':
-                self._coordinates = (self._coordinates[0] + 0, self._coordinates[1] + 1)
-            elif movement == 'turnLeft':
-                self._heading = 'right'
-            elif movement == 'turnRight':
-                self._heading = 'left'
-
-        return
+        return self.experimental_home
 
     def _distance_to(self, coordinates):
+        """Compute the distance, in the number of moves, to the given coordinates.
+        """
+
         return abs(coordinates[0]) + abs(coordinates[1])
 
     def get_best_payload_coordinate(self):
@@ -260,4 +255,4 @@ class Agent(object):
         return
 
     def __repr__(self):
-        return "Agent(%d) heading %s" % (self.identity, self._heading)
+        return "Agent(%d)" % (self.identity,)

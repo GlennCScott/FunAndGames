@@ -15,16 +15,17 @@ def UUID(uid):
 class IslandOfAgents(object):
 
     def __init__(self, server, simulation_id=None, debugging=False):
-        self.debugging = debugging
         self.server = server
+        self.simulation_id = simulation_id
+        self.debugging = debugging
 
         self.agents = []
-        self.simulation_id = simulation_id
         self.running = False
         return
 
     def create_sim(self, environment_name):
         assert environment_name in ("HW1", "HW2")
+
         if self.simulation_id is None:
             if self.server:
                 response = requests.post(self.server + "/api/simulations/create",
@@ -105,7 +106,6 @@ class IslandOfAgents(object):
         else:
             return None
 
-    # all the actions are recorded, now simulate them
     def step(self):
         if self.server:
             return requests.put(self.server + '/api/simulations/%s/step' % (self.simulation_id,),
@@ -134,7 +134,7 @@ class IslandOfAgents(object):
 
         for iteration in xrange(0, iterations):
             for agent in self.agents:
-                action = agent.scan_and_move()
+                action = agent.scan_and_act()
                 print "%5d %s" % (iteration, action)
 
             self.step_sim()

@@ -46,7 +46,7 @@ class IslandOfAgents(object):
     def start_sim(self):
         result = None
         if self.server:
-            response = requests.put(self.server + '/api/simulations/%s/start' % self.simulation_id)
+            response = requests.put(self.server + '/api/simulations/%s/start' % (self.simulation_id,))
             result = response.json()
         else:
             result = {'msg': 'Simulation 2 restarted!',
@@ -64,15 +64,14 @@ class IslandOfAgents(object):
         self.running = True
         return result
 
-    def sim_status(self, simulation_id):
+    def sim_status(self):
         """Get the status of the specified simulation.
         """
 
         result = None
         if self.server:
-            response = requests.get(self.server + '/api/simulations/%s/status' % (simulation_id))
+            response = requests.get(self.server + '/api/simulations/%s/status' % (self.simulation_id,))
             result = response.json()
-            print "status", result
         else:
             result = {}
         return result
@@ -86,7 +85,6 @@ class IslandOfAgents(object):
             response = requests.get(self.server + '/api/simulations/%s/agents/%s/status'
                                     % (self.simulation_id, agent_identifier))
             result = response.json()
-            print "agent_status", result
         else:
             result = {'msg': 'Done',
                       'status': 200,
@@ -119,32 +117,45 @@ class IslandOfAgents(object):
     def step_sim(self):
         json_res = self.step()
         if self.debugging:
-            print 'step: ',
+            print 'step_sim: ',
             pprint(json_res)
         return
 
     def get_status(self):
-        json_res = self.sim_status(self.simulation_id)
+        status = self.sim_status()
         if self.debugging:
-            print 'simStatus: ',
-            pprint.pprint(json_res)
-        return
+            print 'get_status: ',
+            pprint.pprint(status)
+        return status
 
     def run(self, iterations):
         """Run the simulation for N iterations
         """
 
-        for iteration in range(0, iterations):
+        for iteration in xrange(0, iterations):
             for agent in self.agents:
-                agent.scan_and_move()
+                action = agent.scan_and_move()
+                print "%5d %s" % (iteration, action)
 
             self.step_sim()
-            self.get_status()
+
+            pprint.pprint(self.get_status())
+
         return
 
 
-if __name__ == "__main__":
+def IslandOfAgents_HW1():
     island = IslandOfAgents("http://159.203.200.170:8080")
     island.create_sim('HW1')
     island.start_sim()
     island.run(10)
+    print "All done."
+
+def IslandOfAgents_HW2():
+    island = IslandOfAgents("http://159.203.200.170:8080")
+    island.create_sim('HW2')
+    island.start_sim()
+    island.run(10)
+
+if __name__ == "__main__":
+    IslandOfAgents_HW1()

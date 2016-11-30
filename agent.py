@@ -34,6 +34,8 @@ class Agent(object):
             self._update_navigation(self.lastAction)
             if self.lastAction == 'Action.pickUp':
                 self.has_payload = True
+            if self.lastAction == 'Action.drop':
+                self.has_payload = False
 
         self.mode = status['Mode']
         self.last_scan = agent_data['Scan']
@@ -180,10 +182,12 @@ class Agent(object):
             else:
                 self.strategy = self._wander_strategy
 
-        movement = self.strategy()
+        action = self.strategy()
 
-        result = self.island_of_agents.agent_action(self.identity, movement, 1)
-        return result
+        response = self.island_of_agents.agent_action(self.identity, action, 1)
+        assert response.status_code == 200
+
+        return action
 
     def _update_navigation(self, movement):
         """If we've ever seen a Home, keep track of where it is, even if it moves beyond the scan horizon.

@@ -97,7 +97,7 @@ class IslandOfAgents(object):
         return agent_data
 
     def agent_action(self, agent_id, action, mode):
-        assert action in ('moveForward', 'turnLeft', 'turnRight', 'pickUp', 'drop', 'idle')
+        assert action in ('moveForward', 'moveBackward', 'turnLeft', 'turnRight', 'pickUp', 'drop', 'idle')
 
         if self.server:
             return requests.post(self.server + '/api/simulations/%s/agents/%s/action' % (self.simulation_id, agent_id),
@@ -135,11 +135,10 @@ class IslandOfAgents(object):
         for iteration in xrange(0, iterations):
             for agent in self.agents:
                 action = agent.scan_and_act()
-                print "%5d %s" % (iteration, action)
+                print "%5d  %12.12s -> %s" % (iteration, action, agent)
 
             self.step_sim()
-
-            pprint.pprint(self.get_status())
+            print "-----"
 
         return
 
@@ -151,11 +150,14 @@ def IslandOfAgents_HW1():
     island.run(10)
     print "All done."
 
+
 def IslandOfAgents_HW2():
     island = IslandOfAgents("http://159.203.200.170:8080")
     island.create_sim('HW2')
     island.start_sim()
-    island.run(10)
+    island.run(100)
+    print "All done."
 
 if __name__ == "__main__":
-    IslandOfAgents_HW1()
+    # IslandOfAgents_HW1()
+    IslandOfAgents_HW2()

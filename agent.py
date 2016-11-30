@@ -12,6 +12,7 @@ class Agent(object):
 
         self.has_home = False
         self.has_payload = False
+        self._home = None
 
         self.experimental_home = None
 
@@ -32,7 +33,11 @@ class Agent(object):
             if self.experimental_home is None:
                 self.experimental_home = self._home
             else:
-                assert self.experimental_home in self.last_scan['Home']
+                if self.experimental_home not in self.last_scan['Home']:
+                    print self, self.experimental_home, "is not in", self.last_scan['Home']
+        else:
+            self._home = self.experimental_home  # Try some reckoning
+
         return
 
     def _update_payload_information(self, payloads):
@@ -49,7 +54,7 @@ class Agent(object):
             self.walls = None
         return
 
-    def _update_agents_information(self, agents):
+    def _update_agent_information(self, agents):
         if agents is not None and len(agents) > 0:
             self.agents = agents
         else:
@@ -246,6 +251,7 @@ class Agent(object):
                 distance = self._distance_to(payload)
                 if distance <= best_distance:
                     result = payload
+                    best_distance = distance
 
         return result
 
@@ -255,4 +261,5 @@ class Agent(object):
         return
 
     def __repr__(self):
-        return "Agent(%d)" % (self.identity,)
+        return "Agent(%d) home=%s payloads=%s %s:%s" % (
+            self.identity, self._home, self.visible_payloads, self.last_action, self.last_status)

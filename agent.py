@@ -16,6 +16,8 @@ class Agent(object):
 
         self.experimental_home = None
 
+        self.strategy = None
+
         self._horizon = 1
         self._strategy = self._wander_strategy
         return
@@ -35,6 +37,7 @@ class Agent(object):
             else:
                 if self.experimental_home not in self.last_scan['Home']:
                     print self, self.experimental_home, "is not in", self.last_scan['Home']
+                    self.experimental_home = self._home
         else:
             self._home = self.experimental_home  # Try some reckoning
 
@@ -185,9 +188,12 @@ class Agent(object):
         """Move toward Home to make a deposit
         """
 
-        result = self.move_toward(self._home)
-        if result is None:
-            result = "drop"
+        if self.last_status == "Fail":
+            result = "turnRight"
+        else:
+            result = self.move_toward(self._home)
+            if result is None:
+                result = "drop"
 
         assert result is not None
         return result

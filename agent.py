@@ -131,7 +131,7 @@ class Agent(object):
 
         result = 'moveForward'
 
-        if self.last_status == 'Fail':
+        if self.last_status == 'Fail' or self.last_action == 'Action.drop':
             result = 'turnLeft'
 
         return result

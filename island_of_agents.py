@@ -1,8 +1,4 @@
-'''
-Created on Nov 28, 2016
-
-@author: Glenn Scott
-'''
+import sys
 import requests
 import pprint
 from agent import Agent
@@ -143,21 +139,21 @@ class IslandOfAgents(object):
         return
 
 
-def IslandOfAgents_HW1():
-    island = IslandOfAgents("http://159.203.200.170:8080")
+def IslandOfAgents_HW1(args):
+    island = IslandOfAgents(args[0])
     island.create_sim('HW1')
     island.start_sim()
     island.run(10)
     print "All done."
 
 
-def IslandOfAgents_HW2():
-    island = IslandOfAgents("http://159.203.200.170:8080")
+def IslandOfAgents_HW2(args):
+    island = IslandOfAgents(args[0])
     island.create_sim('HW2')
     island.start_sim()
     island.run(100)
     print "All done."
 
 if __name__ == "__main__":
-    # IslandOfAgents_HW1()
-    IslandOfAgents_HW2()
+    # IslandOfAgents_HW1(sys.argv[1:])
+    IslandOfAgents_HW2(sys.argv[1:])
